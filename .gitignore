@@ -20,3 +20,4 @@ assets/.vite/manifest.json
 .agents
 .claude
 skills-lock.json
+.vercel
