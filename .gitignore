@@ -1,0 +1,22 @@
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Misc
+.DS_Store
+
+# Vite build manifest (build-time only, not deployed to Shopify)
+assets/.vite/manifest.json
+
+# Local Claude Code config/skills
+.agents
+.claude
+skills-lock.json
