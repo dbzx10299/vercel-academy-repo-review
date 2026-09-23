@@ -21,3 +21,4 @@ assets/.vite/manifest.json
 .claude
 skills-lock.json
 .vercel
+.env*

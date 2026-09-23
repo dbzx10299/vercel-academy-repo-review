@@ -12,7 +12,10 @@
   "license": "ISC",
   "dependencies": {
     "@vercel/sandbox": "^3.3.0",
-    "commander": "^15.0.0"
+    "ai": "^7.0.112",
+    "commander": "^15.0.0",
+    "dotenv": "^18.0.3",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
