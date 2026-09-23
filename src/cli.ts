@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { runSandboxLifecycle } from './sandbox-lifecycle';
  
 function isValidGitHubRepoUrl(input: string): boolean {
   return /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(input);
@@ -21,7 +22,13 @@ program
       return
     }
 
-    console.log(`Would review: ${repoUrl}`)
+    console.log(`Reviewing ${repoUrl}...`)
+    const result = await runSandboxLifecycle(repoUrl)
+
+    console.log(`Sandbox: ${result.sandboxName}`)
+    console.log(`Clone exit code: ${result.cloneExitCode}`)
+    console.log(`Files:\n${result.files}`)
+    console.log(`README preview:\n${result.readmePreview}`)
   });
  
 await program.parseAsync();
