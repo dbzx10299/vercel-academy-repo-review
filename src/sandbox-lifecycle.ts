@@ -1,4 +1,5 @@
 import { Sandbox } from '@vercel/sandbox';
+import { detectPackageManager } from './test-runner';
  
 const INTERESTING_PATHS = [
   'repo/package.json',
@@ -6,12 +7,13 @@ const INTERESTING_PATHS = [
   'repo/src/app.ts',
   'repo/lib/auth.ts'
 ];
-
+ 
 export type TestResult = {
   exitCode: number;
   stdout: string;
   stderr: string;
-}
+  packageManager: string;
+};
  
 export type LifecycleResult = {
   sandboxName: string;
@@ -39,12 +41,13 @@ export async function runSandboxLifecycle(repoUrl: string): Promise<LifecycleRes
         });
       }
     }
-
-    const install = await sandbox.runCommand({ cmd: 'pnpm', args: ['install'], cwd: 'repo' })
+ 
+    const pm = await detectPackageManager(sandbox);
+    const install = await sandbox.runCommand(pm.install);
     if (install.exitCode !== 0) {
-      throw new Error(`Install failed: ${await install.stderr()}`)
+      throw new Error(`Install failed: ${await install.stderr()}`);
     }
-    const test = await sandbox.runCommand({ cmd: 'pnpm', args: ['test'], cwd: 'repo' })
+    const test = await sandbox.runCommand(pm.test);
  
     return {
       sandboxName: sandbox.name,
@@ -53,7 +56,8 @@ export async function runSandboxLifecycle(repoUrl: string): Promise<LifecycleRes
       testResult: {
         exitCode: test.exitCode,
         stdout: await test.stdout(),
-        stderr: await test.stderr()
+        stderr: await test.stderr(),
+        packageManager: pm.name
       }
     };
   } finally {
