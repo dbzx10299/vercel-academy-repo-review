@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { runSandboxLifecycle } from './sandbox-lifecycle';
 import { analyzeRepository } from './analyze';
 import { parseTestFailures } from './test-runner';
+import { printReview, type CombinedReview } from './reporter';
  
 function isValidGitHubRepoUrl(input: string): boolean {
   return /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(input);
@@ -20,9 +21,7 @@ async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promis
   try {
     return await fn();
   } catch (error) {
-    console.warn(
-      `⚠  ${label} failed: ${error instanceof Error ? error.message : error}`
-    );
+    console.warn(`⚠  ${label} failed: ${error instanceof Error ? error.message : error}`);
     return fallback;
   }
 }
@@ -61,34 +60,18 @@ program
             )
           );
  
-      const testFindings = safe(
-        'test parsing',
-        async () =>
-          parseTestFailures(
-            `${lifecycle.testResult.stdout}\n${lifecycle.testResult.stderr}`
-          ),
-        []
+      const testFindings = parseTestFailures(
+        `${lifecycle.testResult.stdout}\n${lifecycle.testResult.stderr}`
       );
  
-      const resolvedTestFindings = await testFindings;
- 
-      const combined = {
-        overallRisk: resolvedTestFindings.length > 0 ? 'high' as const : aiReview.overallRisk,
+      const combined: CombinedReview = {
+        overallRisk: testFindings.length > 0 ? 'high' : aiReview.overallRisk,
         aiFindings: aiReview.findings,
-        testFindings: resolvedTestFindings
+        testFindings
       };
  
-      console.log(`\nOverall risk: ${combined.overallRisk}`);
-      console.log(`AI findings: ${combined.aiFindings.length}`);
-      for (const finding of combined.aiFindings) {
-        console.log(`  [${finding.severity}] ${finding.summary} (${finding.file})`);
-      }
-      console.log(`Test findings: ${combined.testFindings.length}`);
-      for (const finding of combined.testFindings) {
-        console.log(`  [${finding.severity}] ${finding.details}`);
-      }
- 
-      console.log(`\nTotal: ${Date.now() - totalStart}ms`);
+      printReview(combined);
+      console.log(`Total: ${Date.now() - totalStart}ms`);
     } catch (error) {
       console.error('Review failed:', error instanceof Error ? error.message : error);
       process.exitCode = 1;

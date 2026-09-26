@@ -14,7 +14,7 @@ export const reviewSchema = z.object({
   findings: z.array(findingSchema)
 })
 
-export type FindingSchema = z.infer<typeof findingSchema>
+export type Finding = z.infer<typeof findingSchema>
 export type Review = z.infer<typeof reviewSchema>
  
 // existing analyzeWithPromptV1 stays below
