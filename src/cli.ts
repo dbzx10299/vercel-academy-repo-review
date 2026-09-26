@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { runSandboxLifecycle } from './sandbox-lifecycle';
 import { analyzeRepository } from './analyze';
+import { parseTestFailures } from './test-runner';
  
 function isValidGitHubRepoUrl(input: string): boolean {
   return /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(input);
@@ -30,17 +31,31 @@ program
       const lifecycle = await runSandboxLifecycle(repoUrl);
       console.log(`Sandbox: ${lifecycle.sandboxName}`);
       console.log(`Collected ${lifecycle.files.length} file(s) for analysis.`);
+      console.log(`Tests (${lifecycle.testResult.packageManager}): exit code ${lifecycle.testResult.exitCode}`);
  
-      if (lifecycle.files.length === 0) {
-        console.log('No files matched the interest list; skipping analysis.');
-        return;
+      const aiReview = lifecycle.files.length === 0
+        ? { overallRisk: 'low' as const, findings: [] }
+        : await analyzeRepository(lifecycle.files);
+ 
+      const testFindings = parseTestFailures(
+        `${lifecycle.testResult.stdout}\n${lifecycle.testResult.stderr}`
+      );
+ 
+      const combined = {
+        overallRisk: testFindings.length > 0 ? 'high' as const : aiReview.overallRisk,
+        aiFindings: aiReview.findings,
+        testFindings
+      };
+ 
+      console.log(`\nOverall risk: ${combined.overallRisk}`);
+      console.log(`AI findings: ${combined.aiFindings.length}`);
+      for (const finding of combined.aiFindings) {
+        console.log(`  [${finding.severity}] ${finding.summary} (${finding.file})`);
       }
  
-      const review = await analyzeRepository(lifecycle.files);
-      console.log(`Overall risk: ${review.overallRisk}`);
-      console.log(`Findings: ${review.findings.length}`);
-      for (const finding of review.findings) {
-        console.log(`  [${finding.severity}] ${finding.summary} (${finding.file})`);
+      console.log(`Test findings: ${combined.testFindings.length}`);
+      for (const finding of combined.testFindings) {
+        console.log(`  [${finding.severity}] ${finding.details}`);
       }
     } catch (error) {
       console.error('Review failed:', error instanceof Error ? error.message : error);
