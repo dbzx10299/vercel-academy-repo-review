@@ -1,45 +1,45 @@
 import { Sandbox } from '@vercel/sandbox';
-
-const REPO_URL = 'https://github.com/vercel/examples'
-
+ 
+const INTERESTING_PATHS = [
+  'repo/package.json',
+  'repo/src/index.ts',
+  'repo/src/app.ts',
+  'repo/lib/auth.ts'
+];
+ 
 export type LifecycleResult = {
   sandboxName: string;
   cloneExitCode: number;
-  files: string;
-  readmePreview: string;
-}
-
+  files: Array<{ path: string; content: string }>;
+};
+ 
 export async function runSandboxLifecycle(repoUrl: string): Promise<LifecycleResult> {
-  const sandbox = await Sandbox.create({ persistent: false, timeout: 10 * 60 * 1000 })
-
+  const sandbox = await Sandbox.create({ persistent: false, timeout: 10 * 60 * 1000 });
+ 
   try {
-    const clone = await sandbox.runCommand('git', ['clone', '--depth', '1', repoUrl, 'repo'])
+    const clone = await sandbox.runCommand('git', ['clone', '--depth', '1', repoUrl, 'repo']);
     if (clone.exitCode !== 0) {
-      throw new Error(`Clone failed: ${await clone.stderr()}`)
+      throw new Error(`Clone failed: ${await clone.stderr()}`);
     }
-
-    const ls = await sandbox.runCommand('ls', ['-la', 'repo'])
-
-    let readmePreview = '(no README found)'
-    const readme = await sandbox.readFileToBuffer({ 'path': 'repo/README.md' })
-    if (readme) {
-      readmePreview = readme.toString('utf8').slice(0, 300)
+ 
+    const files: Array<{ path: string; content: string }> = [];
+ 
+    for (const fullPath of INTERESTING_PATHS) {
+      const content = await sandbox.readFileToBuffer({ path: fullPath });
+      if (content) {
+        files.push({
+          path: fullPath.replace(/^repo\//, ''),
+          content: content.toString('utf8')
+        });
+      }
     }
-
+ 
     return {
       sandboxName: sandbox.name,
       cloneExitCode: clone.exitCode,
-      files: await ls.stdout(),
-      readmePreview
-    }
+      files
+    };
   } finally {
-    await sandbox.stop()
+    await sandbox.stop();
   }
 }
-
-async function main() {
-  const result = await runSandboxLifecycle('https://github.com/vercel/examples');
-  console.log(result);
-}
- 
-main();

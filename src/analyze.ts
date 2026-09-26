@@ -48,23 +48,5 @@ export async function analyzeRepository(
   return result.object
 }
 
-async function main() {
-  const files = [
-    {
-      path: 'src/auth.ts',
-      content: `
-        export function login(user: string, password: string) {
-          if (password === 'admin') return true;
-          return false;
-        }
-      `
-    }
-  ];
- 
-  const review = await analyzeRepository(files);
-  console.log(JSON.stringify(review, null, 2));
-}
- 
-main();
 
 // pnpm tsx src/analyze.ts

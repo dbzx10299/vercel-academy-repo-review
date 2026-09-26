@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { runSandboxLifecycle } from './sandbox-lifecycle';
+import { analyzeRepository } from './analyze';
  
 function isValidGitHubRepoUrl(input: string): boolean {
   return /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(input);
@@ -26,11 +27,21 @@ program
     console.log(`Reviewing ${repoUrl}...`);
  
     try {
-      const result = await runSandboxLifecycle(repoUrl);
-      console.log(`Sandbox: ${result.sandboxName}`);
-      console.log(`Clone exit code: ${result.cloneExitCode}`);
-      console.log(`Files:\n${result.files}`);
-      console.log(`README preview:\n${result.readmePreview}`);
+      const lifecycle = await runSandboxLifecycle(repoUrl);
+      console.log(`Sandbox: ${lifecycle.sandboxName}`);
+      console.log(`Collected ${lifecycle.files.length} file(s) for analysis.`);
+ 
+      if (lifecycle.files.length === 0) {
+        console.log('No files matched the interest list; skipping analysis.');
+        return;
+      }
+ 
+      const review = await analyzeRepository(lifecycle.files);
+      console.log(`Overall risk: ${review.overallRisk}`);
+      console.log(`Findings: ${review.findings.length}`);
+      for (const finding of review.findings) {
+        console.log(`  [${finding.severity}] ${finding.summary} (${finding.file})`);
+      }
     } catch (error) {
       console.error('Review failed:', error instanceof Error ? error.message : error);
       process.exitCode = 1;
